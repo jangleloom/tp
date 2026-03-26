@@ -11,6 +11,7 @@ import seedu.address.model.person.Alias;
  */
 class JsonAdaptedAlias {
 
+    public static final String MISSING_FIELD_MESSAGE_FORMAT = "Alias's %s field is missing!";
     private final String aliasName;
 
     /**
@@ -39,6 +40,9 @@ class JsonAdaptedAlias {
      * @throws IllegalValueException if there were any data constraints violated in the adapted alias.
      */
     public Alias toModelType() throws IllegalValueException {
+        if (aliasName == null) {
+            throw new IllegalValueException(String.format(MISSING_FIELD_MESSAGE_FORMAT, "aliasName"));
+        }
         if (!Alias.isValidAlias(aliasName)) {
             throw new IllegalValueException(Alias.MESSAGE_CONSTRAINTS);
         }
