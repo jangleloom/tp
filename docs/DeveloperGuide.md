@@ -186,6 +186,32 @@ The `contact edit` command allows users to rename an existing contact while pres
 * **Index and name-based lookup** — The command supports both index and name identification, consistent with `alias edit` and `view`. A single constructor `(Index, Name, Name, boolean)` is used with the unused field passed as `null`, matching the pattern used by `EditAliasCommand`.
 * **Games and aliases preserved** — The new `Person` is constructed with the original person's `games` map, so all associated data is retained after a rename.
 
+### Delete confirmation feature
+
+#### Implementation
+
+The `contact delete`, `game delete`, and `alias delete` commands all require a y/n confirmation from the user before the deletion is applied. This is implemented via the `ConfirmableDeleteCommand` interface.
+
+**`ConfirmableDeleteCommand` interface:**
+
+All three delete commands implement `ConfirmableDeleteCommand`, which extends `UndoableCommand` and declares two methods:
+* `performDeletion(Model model)` — performs the actual deletion after the user confirms.
+* `getCancelMessage()` — returns the command-specific cancellation message shown when the user declines.
+
+**Two-step execution flow:**
+
+1. User types a delete command (e.g. `game delete 1 g/Minecraft`).
+2. `LogicManager` calls `command.execute(model)`, which validates the target, stores internal state (e.g. `personBeforeEdit`, `personAfterEdit`), and returns a `CommandResult` with `isAwaitingConfirmation = true`.
+3. `LogicManager` stores the command in `pendingConfirmableCommand` and the pending person in `pendingDeletePerson`.
+4. User types `y` or `yes` → `LogicManager` calls `confirmableCommand.performDeletion(model)`, pushes the command to `commandHistory` for undo support, and saves the address book.
+5. User types `n`, `no`, or anything else → `LogicManager` calls `confirmableCommand.getCancelMessage()` and returns without modifying the model.
+
+**Design considerations:**
+
+* **Single code path** — `LogicManager.handleDeleteConfirmation()` handles all three delete commands identically via the `ConfirmableDeleteCommand` interface, with no `instanceof` checks.
+* **Encapsulated deletion logic** — Each command owns its deletion logic in `performDeletion()` rather than having `LogicManager` perform model operations directly.
+* **Undo support** — Since `ConfirmableDeleteCommand` extends `UndoableCommand`, commands pushed to `commandHistory` after confirmation can be reversed with `undo`.
+
 ### \[Proposed\] Undo/redo feature
 
 #### Proposed Implementation
@@ -359,17 +385,24 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 * The list is not empty.
 
 **MSS**
-1.  User requests to delete a specific contact by name.
+1.  User requests to delete a specific contact by name or index.
 2.  System identifies the matching contact.
-3.  System removes the contact and its associated aliases and games.
-4.  System confirms deletion.
+3.  System prompts the user for confirmation.
+4.  User confirms the deletion.
+5.  System removes the contact and its associated aliases and games.
+6.  System confirms deletion.
 
     Use case ends.
 
 **Extensions**
 
-* 2a. No contact is found with matching name.
-  * 2a1. System informs user that no matching user is found.
+* 2a. No contact is found with matching name or index.
+  * 2a1. System informs user that no matching contact is found.
+
+    Use case ends.
+
+* 4a. User cancels the deletion.
+  * 4a1. System informs user that the deletion has been cancelled.
 
     Use case ends.
 
@@ -443,10 +476,19 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 **MSS**
 1. User requests to remove a specific alias from a contact.
 2. System identifies the contact and specific alias.
-3. System removes the alias from the record.
-4. System confirms the removal.
+3. System prompts the user for confirmation.
+4. User confirms the deletion.
+5. System removes the alias from the record.
+6. System confirms the removal.
 
    Use case ends.
+
+**Extensions**
+
+* 4a. User cancels the deletion.
+  * 4a1. System informs user that the deletion has been cancelled.
+
+    Use case ends.
 
 **Use Case: UC7 - Add a game to Contact**
 
@@ -484,10 +526,25 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **MSS**
 1. User requests to remove a specific game from a contact.
-2. System removes the game from the contact.
-3. System displays the contact’s detail panel.
+2. System identifies the contact and specific game.
+3. System prompts the user for confirmation.
+4. User confirms the deletion.
+5. System removes the game from the contact.
+6. System displays the contact’s detail panel.
 
    Use case ends.
+
+**Extensions**
+
+* 2a. The contact or game does not exist.
+  * 2a1. System informs the user that the contact or game was not found.
+
+    Use case ends.
+
+* 4a. User cancels the deletion.
+  * 4a1. System informs user that the deletion has been cancelled.
+
+    Use case ends.
 
 *{More to be added}*
 
