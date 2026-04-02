@@ -198,6 +198,10 @@ All three delete commands implement `ConfirmableDeleteCommand`, which extends `U
 * `performDeletion(Model model)` — performs the actual deletion after the user confirms.
 * `getCancelMessage()` — returns the command-specific cancellation message shown when the user declines.
 
+The class diagram below shows the relationship between the interface and the three delete commands:
+
+<puml src="diagrams/ConfirmableDeleteCommandClassDiagram.puml" alt="ConfirmableDeleteCommand Class Diagram" />
+
 **Two-step execution flow:**
 
 1. User types a delete command (e.g. `game delete 1 g/Minecraft`).
@@ -205,6 +209,10 @@ All three delete commands implement `ConfirmableDeleteCommand`, which extends `U
 3. `LogicManager` stores the command in `pendingConfirmableCommand` and the pending person in `pendingDeletePerson`.
 4. User types `y` or `yes` → `LogicManager` calls `confirmableCommand.performDeletion(model)`, pushes the command to `commandHistory` for undo support, and saves the address book.
 5. User types `n`, `no`, or anything else → `LogicManager` calls `confirmableCommand.getCancelMessage()` and returns without modifying the model.
+
+The sequence diagram below illustrates this two-step flow for a `game delete` command:
+
+<puml src="diagrams/DeleteConfirmationSequenceDiagram.puml" alt="Delete Confirmation Sequence Diagram" />
 
 **Design considerations:**
 

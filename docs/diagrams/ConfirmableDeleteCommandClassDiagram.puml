@@ -1,0 +1,30 @@
+@startuml
+!include style.puml
+skinparam arrowThickness 1.1
+skinparam arrowColor LOGIC_COLOR_T4
+skinparam classBackgroundColor LOGIC_COLOR
+
+package Logic {
+
+Class "<<interface>>\nUndoableCommand" as UndoableCommand
+Class "<<interface>>\nConfirmableDeleteCommand" as ConfirmableDeleteCommand
+Class DeleteContactCommand
+Class DeleteGameCommand
+Class DeleteAliasCommand
+Class LogicManager
+
+}
+
+ConfirmableDeleteCommand -up-|> UndoableCommand
+DeleteContactCommand .up.|> ConfirmableDeleteCommand
+DeleteGameCommand .up.|> ConfirmableDeleteCommand
+DeleteAliasCommand .up.|> ConfirmableDeleteCommand
+LogicManager --> "0..1" ConfirmableDeleteCommand : pendingConfirmableCommand
+
+note bottom of ConfirmableDeleteCommand
+  performDeletion(model)
+  getCancelMessage()
+  undo(model)
+end note
+
+@enduml
